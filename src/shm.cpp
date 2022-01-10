@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 			int* ptr = reinterpret_cast<int*>(region.get_address());
 			std::cout << "ptr[20]: " << ptr[20] << " | ptr[30]: " << ptr[30] << '\n';
 		}
-		else if (opt == "simul" || opt == "noshm")
+		else if (opt == "simul" || opt == "noshm" || opt == "empty")
 		{
 			time(NULL);
 
@@ -124,6 +124,10 @@ int main(int argc, char** argv)
 						return no_shm;
 					}
 
+					if (opt == "empty")
+					{
+						return std::vector<int>();
+					}
 					named_sharable_mutex mtx(open_only, mtx_name.data());
 					sharable_lock<named_sharable_mutex> lock(mtx);
 
@@ -156,7 +160,10 @@ int main(int argc, char** argv)
 
 				const auto& shm_array = get_array();
 				if (shm_array.empty())
-					return;
+				{
+					goto LAST;
+				}
+					
 
 				for (int i = 0; i < size; i++)
 				{
@@ -169,10 +176,11 @@ int main(int argc, char** argv)
 					(void)ld;
 				}
 
+				LAST:
 				auto end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double, std::milli> diff = end - start;
 				{
-					named_sharable_mutex mtx(open_only, mtx_name.data());
+					named_sharable_mutex mtx(open_or_create, mtx_name.data());
 					scoped_lock<named_sharable_mutex> lock(mtx);
 					avg += diff.count();
 					std::cout << "Duration " << diff.count() << " msec\n";
