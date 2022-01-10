@@ -53,6 +53,8 @@ int main(int argc, char** argv)
 
 	std::iota(no_shm.begin(), no_shm.end(), 1);
 
+	named_sharable_mutex gmtx(open_or_create, mtx_name.data());
+
 	try
 	{
 		if (opt == "delete")
@@ -64,7 +66,7 @@ int main(int argc, char** argv)
 				shared_memory_object::remove(shm_name.data());
 				std::cout << "Delete shared memory\n";
 			}
-			
+
 			named_sharable_mutex::remove(mtx_name.data());
 			std::cout << "Delete mutex\n";
 		}
@@ -78,15 +80,15 @@ int main(int argc, char** argv)
 		{
 			named_sharable_mutex mtx(open_or_create, mtx_name.data());
 			scoped_lock<named_sharable_mutex> lock(mtx);
-			
+
 			shared_memory_object shm(create_only, shm_name.data(), read_write);
 			shm.truncate(sizeof(int) * length);
 			mapped_region region(shm, read_write);
 
-			int * ptr = reinterpret_cast<int*>(region.get_address());
+			int* ptr = reinterpret_cast<int*>(region.get_address());
 			for (int i = 0; i < length; i++)
 			{
-				ptr[i] = i+1;
+				ptr[i] = i + 1;
 			}
 
 			std::cout << "Allocate shared memory\n";
@@ -113,7 +115,7 @@ int main(int argc, char** argv)
 			int* ptr = reinterpret_cast<int*>(region.get_address());
 			std::cout << "ptr[20]: " << ptr[20] << " | ptr[30]: " << ptr[30] << '\n';
 		}
-		else if (opt == "simul" || opt == "noshm" || opt == "empty")
+		else if (opt == "simul" || opt == "noshm" || opt == "empty" || opt == "global")
 		{
 			time(NULL);
 
@@ -123,11 +125,11 @@ int main(int argc, char** argv)
 					{
 						return no_shm;
 					}
-
 					if (opt == "empty")
 					{
 						return std::vector<int>();
 					}
+
 					named_sharable_mutex mtx(open_only, mtx_name.data());
 					sharable_lock<named_sharable_mutex> lock(mtx);
 
@@ -148,7 +150,22 @@ int main(int argc, char** argv)
 					std::cout << "thread error code: " << ex.get_error_code() << '\n';
 					return std::vector<int>();
 				}
+			};
+
+			const auto get_array_by_g = [&]() {
+				sharable_lock<named_sharable_mutex> lock(gmtx);
 				
+				shared_memory_object shm(open_only, shm_name.data(), read_write);
+				mapped_region region(shm, read_write);
+
+				int* ptr = reinterpret_cast<int*>(region.get_address());
+				std::vector<int> ret;
+
+				for (int i = 0; i < length; i++) {
+					ret.push_back(ptr[i]);
+				}
+
+				return ret;
 			};
 
 			double avg = 0.;
@@ -158,7 +175,7 @@ int main(int argc, char** argv)
 
 				auto start = std::chrono::high_resolution_clock::now();
 
-				const auto& shm_array = get_array();
+				const auto& shm_array = (opt != "global") ? get_array() : get_array_by_g();
 				if (shm_array.empty())
 				{
 					goto LAST;
