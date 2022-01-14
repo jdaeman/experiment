@@ -97,3 +97,53 @@ int main(int argc, char ** argv)
 
 	return 0;
 }
+
+/*
+int* GetArray(int size = 0)
+{
+	static bool first = true;
+	static shared_memory_object shm1(open_or_create, "WWWWW", read_write);
+	
+	if (first)
+	{
+		shm1.truncate(sizeof(int) * 20);
+		first = false;
+	}
+	
+	static mapped_region region(shm1, read_write);
+	
+	auto &test = region;
+	auto &shm = shm1;
+
+	//int*ptr = reinterpret_cast<int*>(test.get_address());
+
+	if (size > 5)
+	{
+		shm.truncate(sizeof(int) * 24758940);
+		region = mapped_region(shm1, read_write);
+	}
+	int*ptr = reinterpret_cast<int*>(region.get_address());
+	std::cout << test.get_size() << '\n';
+	return ptr;
+
+	//return reinterpret_cast<int*>(test.get_address());
+}
+
+int main()
+{
+	int* ptr = GetArray();
+
+	int *ptr1 = GetArray(10);
+
+	int *ptr2 = GetArray();
+
+	ptr = ptr1;
+	ptr[0] = 1;
+	ptr1[4] = 5;
+	ptr2[900] = 9;
+
+	std::cout << ptr[0] << " " << ptr1[0] << " " << ptr2[4] <<  " " << ptr2[11111] << '\n';
+	return 0;
+
+}
+*/
